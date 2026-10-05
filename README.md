@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🏛️ Brgy. Poblacion Complaint Management System
 
 A comprehensive, production-ready complaint management system built with **Laravel 13**, **PHP 8.3+**, **SQLite**, **Blade**, **Tailwind CSS**, **Alpine.js**, and **Laravel Reverb** for real-time updates.
@@ -447,3 +448,7 @@ For questions or support regarding this system, please contact the system admini
 **Version:** 1.0.0 Beta  
 **Last Updated:** 2025-01-31  
 **Overall Completion:** 75%
+=======
+# Brgy_Poblacion_Complaint_Management_System
+BARANGAY COMPLAINTS
+>>>>>>> 17117701ae57905fe65df8e6ecbeb60bbcdc952a
