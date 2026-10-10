@@ -26,8 +26,9 @@ class AdminAuthController extends Controller
         }
 
         $request->session()->regenerate();
+        $request->session()->forget('url.intended');
 
-        return redirect()->intended(route('admin.dashboard'));
+        return to_route('admin.dashboard');
     }
 
     public function logout(Request $request): RedirectResponse

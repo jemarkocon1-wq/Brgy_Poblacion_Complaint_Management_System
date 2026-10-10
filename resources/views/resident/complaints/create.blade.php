@@ -15,8 +15,52 @@
             </div>
             <div><label for="description" class="text-sm font-semibold">Describe your concern</label><textarea id="description" name="description" rows="6" required minlength="20" maxlength="5000" class="mt-1.5 w-full rounded-xl border border-stone-300 bg-transparent px-4 py-3 text-sm dark:border-slate-700" placeholder="What happened? When did you notice it?">{{ old('description') }}</textarea>@error('description')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror</div>
             <div><label for="attachments" class="text-sm font-semibold">Photos or videos <span class="font-normal text-slate-500">(optional · up to 5 files)</span></label><input id="attachments" name="attachments[]" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" class="mt-1.5 block w-full rounded-xl border border-stone-300 bg-transparent text-sm file:mr-4 file:border-0 file:bg-rose-50 file:px-4 file:py-3 file:font-semibold file:text-maroon dark:border-slate-700 dark:file:bg-slate-800">@error('attachments')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror @error('attachments.*')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror<p class="mt-2 text-xs text-slate-500">JPG, PNG or WebP images up to 5 MB; MP4 or WebM videos up to 50 MB.</p></div>
+            <div id="attachment-preview" class="hidden grid gap-3 sm:grid-cols-2"></div>
             <div class="flex flex-col-reverse justify-end gap-3 border-t border-stone-100 pt-5 sm:flex-row dark:border-slate-800"><a href="{{ route('resident.complaints.index') }}" class="rounded-xl border border-stone-200 px-5 py-3 text-center text-sm font-semibold dark:border-slate-700">Cancel</a><button class="rounded-xl bg-maroon px-6 py-3 text-sm font-bold text-white hover:bg-maroon-dark">Submit complaint</button></div>
         </form>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const input = document.getElementById('attachments');
+        const preview = document.getElementById('attachment-preview');
+
+        if (!input || !preview) {
+            return;
+        }
+
+        input.addEventListener('change', function (event) {
+            const files = Array.from(event.target.files ?? []);
+            preview.innerHTML = '';
+            preview.classList.add('hidden');
+
+            if (files.length === 0) {
+                return;
+            }
+
+            files.forEach((file) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 p-2 dark:border-slate-700 dark:bg-slate-800/60';
+
+                const meta = document.createElement('p');
+                meta.textContent = file.name;
+                meta.className = 'mb-2 truncate text-xs font-semibold text-slate-600 dark:text-slate-300';
+
+                const media = document.createElement(file.type.startsWith('video/') ? 'video' : 'img');
+                media.src = URL.createObjectURL(file);
+                media.className = 'h-40 w-full rounded-xl object-cover';
+                if (file.type.startsWith('video/')) {
+                    media.controls = true;
+                    media.preload = 'metadata';
+                }
+
+                wrapper.appendChild(meta);
+                wrapper.appendChild(media);
+                preview.appendChild(wrapper);
+            });
+
+            preview.classList.remove('hidden');
+        });
+    });
+</script>
 @endsection

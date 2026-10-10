@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateProfileRequest;
-use App\Models\ComplaintActivity;
 use App\Models\Complaint;
+use App\Models\ComplaintActivity;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class WorkspaceController extends Controller
@@ -97,6 +98,18 @@ class WorkspaceController extends Controller
     {
         $staff = $request->user('staff');
         $staff->update($request->safe()->only(['name', 'email', 'phone']));
+
+        if ($request->hasFile('avatar')) {
+            if ($staff->avatar_path) {
+                Storage::disk('public')->delete($staff->avatar_path);
+            }
+
+            $staff->forceFill([
+                'avatar_path' => $request->file('avatar')->store('avatars', 'public'),
+            ]);
+            $staff->save();
+        }
+
         ComplaintActivity::create([
             'actor_id' => $request->user('staff')->id,
             'action' => 'staff.profile',

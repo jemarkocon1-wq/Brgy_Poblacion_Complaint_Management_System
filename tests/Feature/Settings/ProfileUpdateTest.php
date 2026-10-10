@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -31,6 +33,38 @@ test('profile information can be updated', function () {
     expect($user->name)->toBe('Test User');
     expect($user->email)->toBe('test@example.com');
     expect($user->email_verified_at)->not->toBeNull();
+});
+
+test('profile photo can be uploaded', function () {
+    Storage::fake('public');
+    $user = User::factory()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => '09170000099',
+            'avatar' => UploadedFile::fake()->image('avatar.png'),
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    $user->refresh();
+
+    expect($user->avatar_path)->not->toBeNull();
+    Storage::disk('public')->assertExists($user->avatar_path);
+});
+
+test('complaint form includes attachment preview area', function () {
+    $resident = User::factory()->create(['role' => 'resident']);
+
+    $this->actingAs($resident, 'resident')
+        ->get(route('resident.complaints.create'))
+        ->assertOk()
+        ->assertSee('attachment-preview');
 });
 
 test('email timestamp is unchanged when the email address is unchanged', function () {

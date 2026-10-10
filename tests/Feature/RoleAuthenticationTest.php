@@ -4,7 +4,21 @@ use App\Models\Complaint;
 use App\Models\ComplaintActivity;
 use App\Models\User;
 
-test('staff accounts cannot sign in through the resident login page', function () {
+test('wrong credentials for a staff account do not reveal its portal from resident login', function () {
+    $staff = User::factory()->create([
+        'email' => 'staff@poblacion.local',
+        'role' => 'staff',
+    ]);
+
+    $this->post(route('login.store'), [
+        'email' => $staff->email,
+        'password' => 'wrong-password',
+    ])->assertSessionHasErrors('email');
+
+    $this->assertGuest('resident');
+});
+
+test('a staff member using resident login is directed to the staff portal and can sign in', function () {
     $staff = User::factory()->create([
         'email' => 'staff@poblacion.local',
         'role' => 'staff',
@@ -13,9 +27,28 @@ test('staff accounts cannot sign in through the resident login page', function (
     $this->post(route('login.store'), [
         'email' => $staff->email,
         'password' => 'password',
-    ])->assertSessionHasErrors('email');
+    ])->assertRedirect(route('staff.login'));
 
-    $this->assertGuest('resident');
+    $this->get(route('staff.login'))
+        ->assertOk()
+        ->assertSee('This is a staff account.')
+        ->assertSee('value="'.$staff->email.'"', false);
+
+    $this->post(route('staff.login.store'), [
+        'email' => $staff->email,
+        'password' => 'password',
+    ])->assertRedirect(route('staff.dashboard'));
+
+    $this->assertAuthenticatedAs($staff, 'staff');
+});
+
+test('an admin using resident login is directed to the admin portal', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->post(route('login.store'), [
+        'email' => $admin->email,
+        'password' => 'password',
+    ])->assertRedirect(route('admin.login'));
 });
 
 test('admin login has a distinct guard and remains available beside staff login', function () {
@@ -27,6 +60,42 @@ test('admin login has a distinct guard and remains available beside staff login'
 
     $this->assertAuthenticatedAs($staff, 'staff');
     $this->assertAuthenticatedAs($admin, 'admin');
+});
+
+test('staff login goes to the staff dashboard when another portal was previously requested', function () {
+    $staff = User::factory()->create(['role' => 'staff']);
+
+    $this->get(route('admin.dashboard'))
+        ->assertRedirect(route('admin.login'));
+
+    $this->post(route('staff.login.store'), [
+        'email' => $staff->email,
+        'password' => 'password',
+    ])->assertRedirect(route('staff.dashboard'));
+});
+
+test('admin login goes to the admin dashboard when another portal was previously requested', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->get(route('staff.dashboard'))
+        ->assertRedirect(route('staff.login'));
+
+    $this->post(route('admin.login.store'), [
+        'email' => $admin->email,
+        'password' => 'password',
+    ])->assertRedirect(route('admin.dashboard'));
+});
+
+test('resident login goes to the resident dashboard when another portal was previously requested', function () {
+    $resident = User::factory()->create(['role' => 'resident']);
+
+    $this->get(route('admin.dashboard'))
+        ->assertRedirect(route('admin.login'));
+
+    $this->post(route('login.store'), [
+        'email' => $resident->email,
+        'password' => 'password',
+    ])->assertRedirect(route('resident.dashboard'));
 });
 
 test('resident staff and admin workspaces render their pages', function () {

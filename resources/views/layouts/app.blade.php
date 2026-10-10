@@ -120,6 +120,16 @@
                                 @endforelse
                             </div>
                         </div>
+                        @php
+                            $userAvatar = $user?->avatar_path ? Storage::disk('public')->url($user->avatar_path) : null;
+                        @endphp
+                        @if ($userAvatar)
+                            <img src="{{ $userAvatar }}" alt="{{ $user->name }} profile picture" class="size-11 rounded-full object-cover ring-2 ring-stone-200 dark:ring-slate-700">
+                        @else
+                            <div class="grid size-11 place-items-center rounded-full bg-maroon/10 text-sm font-black text-maroon ring-2 ring-stone-200 dark:ring-slate-700">
+                                {{ strtoupper(substr($user->name, 0, 1)) }}
+                            </div>
+                        @endif
                         <div class="hidden text-right sm:block">
                             <p class="text-sm font-semibold">{{ $user->name }}</p>
                             <p class="text-xs capitalize text-slate-500 dark:text-slate-400">{{ $role }}</p>

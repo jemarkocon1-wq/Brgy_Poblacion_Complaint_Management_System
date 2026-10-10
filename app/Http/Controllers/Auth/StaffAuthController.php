@@ -26,8 +26,9 @@ class StaffAuthController extends Controller
         }
 
         $request->session()->regenerate();
+        $request->session()->forget('url.intended');
 
-        return redirect()->intended(route('staff.dashboard'));
+        return to_route('staff.dashboard');
     }
 
     public function logout(Request $request): RedirectResponse

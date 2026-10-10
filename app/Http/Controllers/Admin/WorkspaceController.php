@@ -13,6 +13,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -216,7 +217,20 @@ class WorkspaceController extends Controller
 
     public function updateSettings(UpdateProfileRequest $request): RedirectResponse
     {
-        $request->user('admin')->update($request->safe()->only(['name', 'email', 'phone']));
+        $admin = $request->user('admin');
+        $admin->update($request->safe()->only(['name', 'email', 'phone']));
+
+        if ($request->hasFile('avatar')) {
+            if ($admin->avatar_path) {
+                Storage::disk('public')->delete($admin->avatar_path);
+            }
+
+            $admin->forceFill([
+                'avatar_path' => $request->file('avatar')->store('avatars', 'public'),
+            ]);
+            $admin->save();
+        }
+
         $this->log($request, 'admin.profile', 'Updated administrator profile.');
 
         return back()->with('status', 'Settings saved.');
