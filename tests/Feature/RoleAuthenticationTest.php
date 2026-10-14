@@ -106,7 +106,9 @@ test('resident staff and admin workspaces render their pages', function () {
 
     $this->actingAs($resident, 'resident')
         ->get(route('resident.dashboard'))
-        ->assertOk();
+        ->assertOk()
+        ->assertSee('Need assistance?')
+        ->assertSee('Contact the barangay');
     $this->get(route('resident.complaints.index'))->assertOk();
     $this->get(route('resident.complaints.create'))->assertOk();
     $this->get(route('resident.complaints.show', $complaint))->assertOk();
@@ -114,7 +116,9 @@ test('resident staff and admin workspaces render their pages', function () {
 
     $this->actingAs($staff, 'staff')
         ->get(route('staff.dashboard'))
-        ->assertOk();
+        ->assertOk()
+        ->assertDontSee('Need assistance?')
+        ->assertDontSee('Contact the barangay');
     $this->get(route('staff.complaints.index'))->assertOk();
     $this->get(route('staff.assigned'))->assertOk();
     $this->get(route('staff.residents.index'))->assertOk();
@@ -123,7 +127,9 @@ test('resident staff and admin workspaces render their pages', function () {
 
     $this->actingAs($admin, 'admin')
         ->get(route('admin.dashboard'))
-        ->assertOk();
+        ->assertOk()
+        ->assertDontSee('Need assistance?')
+        ->assertDontSee('Contact the barangay');
     $this->get(route('admin.complaints.index'))->assertOk();
     $this->get(route('admin.users.index'))->assertOk();
     $this->get(route('admin.reports'))->assertOk();

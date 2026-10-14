@@ -9,7 +9,7 @@
 
 @section('content')
 <div class="grid min-h-screen lg:grid-cols-[1fr_1fr]">
-    <section class="relative hidden overflow-hidden bg-maroon p-12 text-white lg:flex lg:flex-col lg:justify-between">
+    <section class="relative hidden overflow-hidden bg-maroon bg-cover bg-center p-12 text-white lg:flex lg:flex-col lg:justify-between" style="background-image: linear-gradient(rgba(15, 23, 42, 0.38), rgba(15, 23, 42, 0.38)), url('{{ asset('images/allm.png') }}')">
         <a href="{{ route('home') }}" class="relative z-10 flex items-center gap-3"><img src="{{ asset('images/mahaplag-logo.png') }}" alt="Municipality of Mahaplag official seal" class="size-12 shrink-0 object-contain"><span><strong class="block text-sm">BARANGAY POBLACION</strong><span class="text-xs text-rose-200">Complaint Management System</span></span></a>
         <div class="relative z-10 max-w-xl pb-12"><p class="text-xs font-bold uppercase tracking-[0.2em] text-amber-200">{{ ucfirst($role) }} portal</p><h1 class="mt-5 text-5xl font-black leading-tight">Good things happen when we work <span class="text-amber-300">together.</span></h1><p class="mt-5 max-w-lg leading-8 text-rose-100">Securely connect with your barangay and keep up with community concerns.</p></div>
         <div class="absolute -bottom-40 -right-28 size-[34rem] rounded-full border border-white/10"></div><div class="absolute bottom-16 right-16 size-64 rounded-full border border-gold/30"></div>

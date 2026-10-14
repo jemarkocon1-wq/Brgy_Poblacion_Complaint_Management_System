@@ -19,8 +19,20 @@ use Symfony\Component\HttpFoundation\Response;
 
 class WorkspaceController extends Controller
 {
-    public function dashboard(): View
+    public function dashboard(Request $request): View
     {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim($filters['search'] ?? '');
+        $recentComplaints = Complaint::query()
+            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
+                $query->where('reference', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%");
+            }))
+            ->with('resident', 'assignedStaff')
+            ->latest();
+
         return view('admin.dashboard', [
             'counts' => [
                 'pending' => Complaint::where('status', 'pending')->count(),
@@ -29,15 +41,34 @@ class WorkspaceController extends Controller
                 'residents' => User::where('role', 'resident')->count(),
                 'staff' => User::where('role', 'staff')->count(),
             ],
-            'recentComplaints' => Complaint::with('resident', 'assignedStaff')->latest()->limit(8)->get(),
+            'recentComplaints' => $search === ''
+                ? $recentComplaints->limit(8)->get()
+                : $recentComplaints->paginate(8)->withQueryString(),
             'recentActivities' => ComplaintActivity::with('actor', 'complaint')->latest()->limit(8)->get(),
+            'search' => $search,
         ]);
     }
 
-    public function complaints(): View
+    public function complaints(Request $request): View
     {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $search = trim($filters['search'] ?? '');
+
         return view('admin.complaints', [
-            'complaints' => Complaint::with(['resident', 'assignedStaff'])->latest()->paginate(15),
+            'complaints' => Complaint::query()
+                ->with(['resident', 'assignedStaff'])
+                ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
+                    $query->where('reference', 'like', "%{$search}%")
+                        ->orWhere('title', 'like', "%{$search}%")
+                        ->orWhereHas('resident', fn ($residentQuery) => $residentQuery->where('name', 'like', "%{$search}%"));
+                }))
+                ->latest()
+                ->paginate(15)
+                ->withQueryString(),
+            'search' => $search,
         ]);
     }
 

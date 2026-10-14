@@ -25,6 +25,11 @@ class ComplaintPolicy
             || ($user->role === 'resident' && $complaint->resident_id === $user->id));
     }
 
+    public function comment(User $user, Complaint $complaint): bool
+    {
+        return $this->view($user, $complaint);
+    }
+
     /**
      * Determine whether the user can create models.
      */

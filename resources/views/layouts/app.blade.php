@@ -79,11 +79,13 @@
                     </a>
                 @endforeach
             </nav>
-            <div class="mt-8 rounded-2xl bg-rose-50 p-4 dark:bg-slate-800">
-                <p class="text-sm font-semibold text-maroon dark:text-rose-200">Need assistance?</p>
-                <p class="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">Barangay staff are ready to help with your concern.</p>
-                <a href="{{ route('home') }}#contact" class="mt-3 inline-block text-xs font-bold text-maroon dark:text-rose-200">Contact the barangay →</a>
-            </div>
+            @if ($role === 'resident')
+                <div class="mt-8 rounded-2xl bg-rose-50 p-4 dark:bg-slate-800">
+                    <p class="text-sm font-semibold text-maroon dark:text-rose-200">Need assistance?</p>
+                    <p class="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">Barangay staff are ready to help with your concern.</p>
+                    <a href="{{ route('home') }}#contact" class="mt-3 inline-block text-xs font-bold text-maroon dark:text-rose-200">Contact the barangay →</a>
+                </div>
+            @endif
         </aside>
 
         <div class="min-w-0 flex-1">

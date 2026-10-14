@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\ComplaintFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Complaint extends Model
 {
-    /** @use HasFactory<\Database\Factories\ComplaintFactory> */
+    /** @use HasFactory<ComplaintFactory> */
     use HasFactory;
 
     protected function casts(): array
@@ -45,6 +46,11 @@ class Complaint extends Model
     public function evidence(): HasMany
     {
         return $this->hasMany(ComplaintEvidence::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(ComplaintComment::class)->orderBy('created_at')->orderBy('id');
     }
 
     public function activities(): HasMany

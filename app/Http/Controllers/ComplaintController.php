@@ -96,7 +96,7 @@ class ComplaintController extends Controller
     public function show(Request $request, Complaint $complaint): View
     {
         $this->authorize('view', $complaint);
-        $complaint->load(['resident', 'assignedStaff', 'evidence', 'activities.actor']);
+        $complaint->load(['resident', 'assignedStaff', 'evidence', 'activities.actor', 'comments.author']);
 
         return view('complaints.show', [
             'complaint' => $complaint,

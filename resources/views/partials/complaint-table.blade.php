@@ -20,7 +20,7 @@
                             @php
                                 $detailRoute = request()->routeIs('resident.*') ? 'resident.complaints.show' : (request()->routeIs('admin.*') ? 'admin.complaints.show' : 'staff.complaints.show');
                             @endphp
-                            <a href="{{ route($detailRoute, $complaint) }}" class="font-bold text-maroon hover:underline">View details →</a>
+                            <a href="{{ route($detailRoute, $complaint) }}" class="font-bold text-maroon hover:underline">{{ request()->routeIs('resident.*') ? 'View complaint & comments →' : 'View details →' }}</a>
                         </td>
                     </tr>
                 @empty

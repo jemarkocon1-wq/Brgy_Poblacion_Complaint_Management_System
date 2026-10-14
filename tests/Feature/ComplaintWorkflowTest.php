@@ -150,3 +150,98 @@ test('residents cannot view another resident evidence file', function () {
         ->get(route('complaint-evidence.show', ['evidence' => $evidence, 'guard' => 'resident']))
         ->assertForbidden();
 });
+
+test('a resident can exchange private comments with the barangay on their complaint', function () {
+    $resident = User::factory()->create();
+    $staff = User::factory()->create(['role' => 'staff']);
+    $complaint = Complaint::factory()->for($resident, 'resident')->create();
+    $body = "<script>alert('xss')</script> Please confirm whether this can be approved.";
+
+    $response = $this->actingAs($resident, 'resident')
+        ->post(route('resident.complaints.comments.store', $complaint), ['body' => $body]);
+
+    $response->assertRedirect(route('resident.complaints.show', $complaint));
+    $this->assertDatabaseHas('complaint_comments', [
+        'complaint_id' => $complaint->id,
+        'author_id' => $resident->id,
+        'body' => $body,
+    ]);
+
+    $this->get(route('resident.complaints.show', $complaint))
+        ->assertSee('<script>alert(\'xss\')</script>')
+        ->assertSee('Private discussion')
+        ->assertSeeInOrder([
+            'Description',
+            $complaint->description,
+            'Private discussion',
+            'Add a message',
+            'Status timeline',
+        ]);
+
+    $this->actingAs($staff, 'staff')
+        ->get(route('staff.complaints.show', $complaint))
+        ->assertSee('Please confirm whether this can be approved.');
+});
+
+test('staff and admins can comment on complaint discussions', function () {
+    $resident = User::factory()->create();
+    $complaint = Complaint::factory()->for($resident, 'resident')->create();
+    $staff = User::factory()->create(['role' => 'staff']);
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($staff, 'staff')
+        ->post(route('staff.complaints.comments.store', $complaint), ['body' => 'Staff follow-up'])
+        ->assertRedirect(route('staff.complaints.show', $complaint));
+
+    $this->actingAs($admin, 'admin')
+        ->post(route('admin.complaints.comments.store', $complaint), ['body' => 'Admin follow-up'])
+        ->assertRedirect(route('admin.complaints.show', $complaint));
+
+    $this->assertDatabaseHas('complaint_comments', [
+        'complaint_id' => $complaint->id,
+        'author_id' => $staff->id,
+        'body' => 'Staff follow-up',
+    ]);
+    $this->assertDatabaseHas('complaint_comments', [
+        'complaint_id' => $complaint->id,
+        'author_id' => $admin->id,
+        'body' => 'Admin follow-up',
+    ]);
+
+    $this->get(route('admin.complaints.show', $complaint))
+        ->assertSee('Admin follow-up')
+        ->assertSee('Private discussion');
+});
+
+test('another resident cannot read or add comments to a complaint discussion', function () {
+    $owner = User::factory()->create();
+    $otherResident = User::factory()->create();
+    $complaint = Complaint::factory()->for($owner, 'resident')->create();
+    $complaint->comments()->create([
+        'author_id' => $owner->id,
+        'body' => 'Private complaint details',
+    ]);
+
+    $this->actingAs($otherResident, 'resident')
+        ->get(route('resident.complaints.show', $complaint))
+        ->assertForbidden();
+
+    $this->post(route('resident.complaints.comments.store', $complaint), ['body' => 'Unauthorized message'])
+        ->assertForbidden();
+
+    $this->assertDatabaseMissing('complaint_comments', [
+        'complaint_id' => $complaint->id,
+        'body' => 'Unauthorized message',
+    ]);
+});
+
+test('a complaint comment requires a non-empty message', function () {
+    $resident = User::factory()->create();
+    $complaint = Complaint::factory()->for($resident, 'resident')->create();
+
+    $this->actingAs($resident, 'resident')
+        ->post(route('resident.complaints.comments.store', $complaint), ['body' => ''])
+        ->assertSessionHasErrors('body');
+
+    $this->assertDatabaseMissing('complaint_comments', ['complaint_id' => $complaint->id]);
+});

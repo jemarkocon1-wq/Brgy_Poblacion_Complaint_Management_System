@@ -8,7 +8,7 @@
     <a href="{{ route('resident.complaints.index') }}" class="text-sm font-semibold text-slate-500 hover:text-maroon">← My complaints</a>
     <div class="mt-4 rounded-3xl border border-stone-200 bg-white p-6 sm:p-8 dark:border-slate-800 dark:bg-slate-900">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-maroon">Tell us what's happening</p><h2 class="mt-2 text-2xl font-black">We'll work on it together.</h2><p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Give us enough detail to understand and locate your concern. You may attach up to five photos or videos.</p>
-        <form method="POST" action="{{ route('resident.complaints.store') }}" enctype="multipart/form-data" class="mt-7 space-y-5">@csrf
+        <form id="complaint-form" method="POST" action="{{ route('resident.complaints.store') }}" enctype="multipart/form-data" class="mt-7 space-y-5">@csrf
             <div><label for="title" class="text-sm font-semibold">Short title</label><input id="title" name="title" value="{{ old('title') }}" maxlength="160" required class="mt-1.5 w-full rounded-xl border border-stone-300 bg-transparent px-4 py-3 text-sm dark:border-slate-700">@error('title')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror</div>
             <div class="grid gap-5 sm:grid-cols-2"><div><label for="category" class="text-sm font-semibold">Category</label><select id="category" name="category" required class="mt-1.5 w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900"><option value="">Choose a category</option>@foreach (['noise' => 'Noise concern', 'sanitation' => 'Sanitation and waste', 'infrastructure' => 'Roads and infrastructure', 'public_safety' => 'Public safety', 'other' => 'Other'] as $value => $label)<option value="{{ $value }}" @selected(old('category') === $value)>{{ $label }}</option>@endforeach</select>@error('category')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror</div>
                 <div><label for="location" class="text-sm font-semibold">Location in the barangay</label><input id="location" name="location" value="{{ old('location') }}" required placeholder="Street, landmark, or purok" class="mt-1.5 w-full rounded-xl border border-stone-300 bg-transparent px-4 py-3 text-sm dark:border-slate-700">@error('location')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror</div>
@@ -22,8 +22,17 @@
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('complaint-form');
         const input = document.getElementById('attachments');
         const preview = document.getElementById('attachment-preview');
+
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                if (!window.confirm('Are you sure, you want to submit this complaint?') || !window.confirm('Surreeeee?')) {
+                    event.preventDefault();
+                }
+            });
+        }
 
         if (!input || !preview) {
             return;

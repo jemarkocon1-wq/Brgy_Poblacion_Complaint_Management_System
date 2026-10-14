@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\ConfirmPasswordController;
 use App\Http\Controllers\Auth\ResidentAuthController;
 use App\Http\Controllers\Auth\StaffAuthController;
+use App\Http\Controllers\ComplaintCommentController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ComplaintEvidenceController;
 use App\Http\Controllers\ComplaintWorkflowController;
@@ -41,6 +42,7 @@ Route::prefix('resident')->name('resident.')->middleware(['auth:resident', 'role
     Route::get('/complaints/create', [ComplaintController::class, 'create'])->name('complaints.create');
     Route::post('/complaints', [ComplaintController::class, 'store'])->name('complaints.store');
     Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
+    Route::post('/complaints/{complaint}/comments', [ComplaintCommentController::class, 'store'])->name('complaints.comments.store');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
@@ -53,6 +55,7 @@ Route::prefix('staff')->name('staff.')->middleware(['auth:staff', 'role:staff'])
     Route::get('/complaints', [StaffWorkspaceController::class, 'complaints'])->name('complaints.index');
     Route::get('/assigned', [StaffWorkspaceController::class, 'assigned'])->name('assigned');
     Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
+    Route::post('/complaints/{complaint}/comments', [ComplaintCommentController::class, 'store'])->name('complaints.comments.store');
     Route::post('/complaints/{complaint}/approve', [ComplaintWorkflowController::class, 'approve'])->name('complaints.approve');
     Route::post('/complaints/{complaint}/reject', [ComplaintWorkflowController::class, 'reject'])->name('complaints.reject');
     Route::post('/complaints/{complaint}/resolve', [ComplaintWorkflowController::class, 'resolve'])->name('complaints.resolve');
@@ -73,6 +76,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'role:admin'])
     Route::patch('/users/{user}/access', [AdminWorkspaceController::class, 'toggleUser'])->name('users.access');
     Route::get('/complaints', [AdminWorkspaceController::class, 'complaints'])->name('complaints.index');
     Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
+    Route::post('/complaints/{complaint}/comments', [ComplaintCommentController::class, 'store'])->name('complaints.comments.store');
     Route::post('/complaints/{complaint}/approve', [ComplaintWorkflowController::class, 'approve'])->name('complaints.approve');
     Route::post('/complaints/{complaint}/reject', [ComplaintWorkflowController::class, 'reject'])->name('complaints.reject');
     Route::post('/complaints/{complaint}/resolve', [ComplaintWorkflowController::class, 'resolve'])->name('complaints.resolve');
