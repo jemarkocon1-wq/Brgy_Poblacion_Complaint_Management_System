@@ -38,6 +38,8 @@ class WorkspaceController extends Controller
                 'pending' => Complaint::where('status', 'pending')->count(),
                 'in_progress' => Complaint::where('status', 'approved')->count(),
                 'resolved' => Complaint::where('status', 'resolved')->count(),
+                'unsettled' => Complaint::where('status', 'unsettled')->count(),
+                'closed' => Complaint::where('status', 'closed')->count(),
                 'residents' => User::where('role', 'resident')->count(),
                 'staff' => User::where('role', 'staff')->count(),
             ],
@@ -52,6 +54,7 @@ class WorkspaceController extends Controller
     public function complaints(Request $request): View
     {
         $filters = $request->validate([
+            'status' => ['nullable', 'in:pending,approved,rejected,resolved,unsettled,closed'],
             'search' => ['nullable', 'string', 'max:100'],
         ]);
 
@@ -60,6 +63,7 @@ class WorkspaceController extends Controller
         return view('admin.complaints', [
             'complaints' => Complaint::query()
                 ->with(['resident', 'assignedStaff'])
+                ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
                 ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
                     $query->where('reference', 'like', "%{$search}%")
                         ->orWhere('title', 'like', "%{$search}%")
@@ -69,18 +73,19 @@ class WorkspaceController extends Controller
                 ->paginate(15)
                 ->withQueryString(),
             'search' => $search,
+            'status' => $filters['status'] ?? '',
         ]);
     }
 
     public function users(Request $request): View
     {
         $filters = $request->validate([
-            'role' => ['nullable', 'in:resident,staff'],
+            'role' => ['nullable', 'in:admin,resident,staff'],
             'search' => ['nullable', 'string', 'max:80'],
         ]);
 
         $users = User::query()
-            ->whereIn('role', ['resident', 'staff'])
+            ->whereIn('role', ['admin', 'resident', 'staff'])
             ->withCount(['complaints', 'assignedComplaints'])
             ->when($filters['role'] ?? null, fn ($query, string $role) => $query->where('role', $role))
             ->when($filters['search'] ?? null, fn ($query, string $search) => $query->where(function ($query) use ($search): void {
@@ -102,7 +107,7 @@ class WorkspaceController extends Controller
             'is_active' => true,
         ]);
 
-        if ($user->role === 'staff') {
+        if (in_array($user->role, ['admin', 'staff'], true)) {
             $user->forceFill(['email_verified_at' => now()])->save();
         }
 
@@ -140,7 +145,7 @@ class WorkspaceController extends Controller
     public function reports(Request $request): View
     {
         $filters = $request->validate([
-            'status' => ['nullable', 'in:pending,approved,rejected,resolved'],
+            'status' => ['nullable', 'in:pending,approved,rejected,resolved,unsettled,closed'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
         ]);
@@ -153,40 +158,68 @@ class WorkspaceController extends Controller
         return view('reports.index', [
             'title' => 'Barangay reports',
             'filters' => $filters,
+            'complaints' => $complaints->clone()->with(['resident', 'assignedStaff'])->latest()->paginate(15)->withQueryString(),
             'counts' => $complaints->clone()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'categories' => $complaints->clone()->selectRaw('category, count(*) as total')->groupBy('category')->pluck('total', 'category'),
         ]);
     }
 
-    public function exportCsv(): Response
+    public function exportCsv(Request $request): Response
     {
-        return response()->streamDownload(function (): void {
-            $output = fopen('php://output', 'w');
-            fputcsv($output, ['Reference', 'Resident', 'Category', 'Title', 'Location', 'Status', 'Assigned staff', 'Submitted at']);
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:pending,approved,rejected,resolved,unsettled,closed'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
 
-            Complaint::with(['resident', 'assignedStaff'])->orderBy('id')->chunk(250, function ($complaints) use ($output): void {
-                foreach ($complaints as $complaint) {
-                    fputcsv($output, [
-                        $complaint->reference,
-                        $complaint->resident->name,
-                        $complaint->category,
-                        $complaint->title,
-                        $complaint->location,
-                        $complaint->statusLabel(),
-                        $complaint->assignedStaff?->name,
-                        $complaint->created_at?->toDateTimeString(),
-                    ]);
-                }
-            });
+        return response()->streamDownload(function () use ($filters): void {
+            $output = fopen('php://output', 'w');
+            fputcsv($output, ['Reference', 'Title', 'Complainant', 'Respondent(s)', 'Witnesses', 'Category', 'Status', 'Assigned staff', 'Submitted at']);
+
+            Complaint::query()
+                ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
+                ->when($filters['start_date'] ?? null, fn ($query, string $startDate) => $query->whereDate('created_at', '>=', $startDate))
+                ->when($filters['end_date'] ?? null, fn ($query, string $endDate) => $query->whereDate('created_at', '<=', $endDate))
+                ->with(['resident', 'assignedStaff'])
+                ->orderBy('id')
+                ->chunk(250, function ($complaints) use ($output): void {
+                    foreach ($complaints as $complaint) {
+                        fputcsv($output, [
+                            $complaint->reference,
+                            $complaint->title,
+                            $complaint->resident?->name,
+                            $complaint->respondents ?: '—',
+                            $complaint->witnesses ?: '—',
+                            str_replace('_', ' ', ucfirst($complaint->category)),
+                            $complaint->statusLabel(),
+                            $complaint->assignedStaff?->name ?? '—',
+                            $complaint->created_at?->toDateTimeString(),
+                        ]);
+                    }
+                });
 
             fclose($output);
         }, 'barangay-complaints.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
-    public function exportPdf(): Response
+    public function exportPdf(Request $request): Response
     {
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:pending,approved,rejected,resolved,unsettled,closed'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        $complaints = Complaint::query()
+            ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
+            ->when($filters['start_date'] ?? null, fn ($query, string $startDate) => $query->whereDate('created_at', '>=', $startDate))
+            ->when($filters['end_date'] ?? null, fn ($query, string $endDate) => $query->whereDate('created_at', '<=', $endDate))
+            ->with(['resident', 'assignedStaff'])
+            ->latest()
+            ->get();
+
         return Pdf::loadView('reports.pdf', [
-            'complaints' => Complaint::with(['resident', 'assignedStaff'])->latest()->get(),
+            'complaints' => $complaints,
             'generatedAt' => now(),
         ])->download('barangay-complaints.pdf');
     }

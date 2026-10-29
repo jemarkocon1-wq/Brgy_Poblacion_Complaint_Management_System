@@ -13,9 +13,9 @@ class ComplaintAlert extends Notification
     public function __construct(
         public Complaint $complaint,
         public string $message,
-    ) {
-    }
+    ) {}
 
+    /** @return array<int, string> */
     public function via(object $notifiable): array
     {
         return ['database'];

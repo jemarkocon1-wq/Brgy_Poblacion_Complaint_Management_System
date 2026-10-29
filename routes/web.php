@@ -9,14 +9,21 @@ use App\Http\Controllers\Auth\StaffAuthController;
 use App\Http\Controllers\ComplaintCommentController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ComplaintEvidenceController;
+use App\Http\Controllers\ComplaintMeetingController;
+use App\Http\Controllers\ComplaintSummonsServiceController;
 use App\Http\Controllers\ComplaintWorkflowController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Resident\DashboardController as ResidentDashboardController;
 use App\Http\Controllers\Staff\WorkspaceController as StaffWorkspaceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingController::class, 'index'])->name('home');
+Route::post('/locale', [LocaleController::class, 'update'])
+    ->middleware('auth:resident,staff,admin')
+    ->name('locale.update');
 
 Route::middleware('guest:resident')->group(function (): void {
     Route::get('/login', [ResidentAuthController::class, 'login'])->name('login');
@@ -43,30 +50,39 @@ Route::prefix('resident')->name('resident.')->middleware(['auth:resident', 'role
     Route::post('/complaints', [ComplaintController::class, 'store'])->name('complaints.store');
     Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
     Route::post('/complaints/{complaint}/comments', [ComplaintCommentController::class, 'store'])->name('complaints.comments.store');
+    Route::post('/complaints/{complaint}/receipt', [ComplaintWorkflowController::class, 'submitReceipt'])->name('complaints.receipt.store');
+    Route::get('/complaints/{complaint}/summons', [ComplaintWorkflowController::class, 'showSummons'])->name('complaints.summons');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
-Route::get('/staff/login', [StaffAuthController::class, 'login'])->middleware('guest:staff')->name('staff.login');
-Route::post('/staff/login', [StaffAuthController::class, 'storeLogin'])->middleware(['guest:staff', 'throttle:role-login'])->name('staff.login.store');
+Route::get('/staff/login', [StaffAuthController::class, 'login'])->middleware('guest:staff,admin')->name('staff.login');
+Route::post('/staff/login', [AdminAuthController::class, 'storeLogin'])->middleware(['guest:staff,admin', 'throttle:role-login'])->name('staff.login.store');
 Route::post('/staff/logout', [StaffAuthController::class, 'logout'])->middleware('auth:staff')->name('staff.logout');
 Route::prefix('staff')->name('staff.')->middleware(['auth:staff', 'role:staff'])->group(function (): void {
     Route::get('/dashboard', [StaffWorkspaceController::class, 'dashboard'])->name('dashboard');
     Route::get('/complaints', [StaffWorkspaceController::class, 'complaints'])->name('complaints.index');
+    Route::get('/complaints/create', [ComplaintController::class, 'create'])->name('complaints.create');
+    Route::post('/complaints', [ComplaintController::class, 'store'])->name('complaints.store');
     Route::get('/assigned', [StaffWorkspaceController::class, 'assigned'])->name('assigned');
     Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
     Route::post('/complaints/{complaint}/comments', [ComplaintCommentController::class, 'store'])->name('complaints.comments.store');
     Route::post('/complaints/{complaint}/approve', [ComplaintWorkflowController::class, 'approve'])->name('complaints.approve');
     Route::post('/complaints/{complaint}/reject', [ComplaintWorkflowController::class, 'reject'])->name('complaints.reject');
     Route::post('/complaints/{complaint}/resolve', [ComplaintWorkflowController::class, 'resolve'])->name('complaints.resolve');
+    Route::post('/complaints/{complaint}/receipt/confirm', [ComplaintWorkflowController::class, 'confirmReceipt'])->name('complaints.receipt.confirm');
+    Route::get('/complaints/{complaint}/summons', [ComplaintWorkflowController::class, 'showSummons'])->name('complaints.summons');
+    Route::post('/complaints/{complaint}/summons', [ComplaintWorkflowController::class, 'saveSummons'])->name('complaints.summons.update');
+    Route::post('/complaints/{complaint}/meetings', [ComplaintMeetingController::class, 'store'])->name('complaints.meetings.store');
+    Route::post('/complaints/{complaint}/summons-services', [ComplaintSummonsServiceController::class, 'store'])->name('complaints.summons-services.store');
     Route::get('/residents', [StaffWorkspaceController::class, 'residents'])->name('residents.index');
     Route::get('/reports', [StaffWorkspaceController::class, 'reports'])->name('reports');
     Route::get('/settings', [StaffWorkspaceController::class, 'settings'])->name('settings');
     Route::patch('/settings', [StaffWorkspaceController::class, 'updateSettings'])->name('settings.update');
 });
 
-Route::get('/admin/login', [AdminAuthController::class, 'login'])->middleware('guest:admin')->name('admin.login');
-Route::post('/admin/login', [AdminAuthController::class, 'storeLogin'])->middleware(['guest:admin', 'throttle:role-login'])->name('admin.login.store');
+Route::get('/admin/login', [AdminAuthController::class, 'login'])->middleware('guest:admin,staff')->name('admin.login');
+Route::post('/admin/login', [AdminAuthController::class, 'storeLogin'])->middleware(['guest:admin,staff', 'throttle:role-login'])->name('admin.login.store');
 Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->middleware('auth:admin')->name('admin.logout');
 Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'role:admin'])->group(function (): void {
     Route::get('/dashboard', [AdminWorkspaceController::class, 'dashboard'])->name('dashboard');
@@ -75,11 +91,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'role:admin'])
     Route::patch('/users/{user}', [AdminWorkspaceController::class, 'updateUser'])->name('users.update');
     Route::patch('/users/{user}/access', [AdminWorkspaceController::class, 'toggleUser'])->name('users.access');
     Route::get('/complaints', [AdminWorkspaceController::class, 'complaints'])->name('complaints.index');
+    Route::get('/complaints/create', [ComplaintController::class, 'create'])->name('complaints.create');
+    Route::post('/complaints', [ComplaintController::class, 'store'])->name('complaints.store');
     Route::get('/complaints/{complaint}', [ComplaintController::class, 'show'])->name('complaints.show');
     Route::post('/complaints/{complaint}/comments', [ComplaintCommentController::class, 'store'])->name('complaints.comments.store');
     Route::post('/complaints/{complaint}/approve', [ComplaintWorkflowController::class, 'approve'])->name('complaints.approve');
     Route::post('/complaints/{complaint}/reject', [ComplaintWorkflowController::class, 'reject'])->name('complaints.reject');
-    Route::post('/complaints/{complaint}/resolve', [ComplaintWorkflowController::class, 'resolve'])->name('complaints.resolve');
+    Route::post('/complaints/{complaint}/receipt/confirm', [ComplaintWorkflowController::class, 'confirmReceipt'])->name('complaints.receipt.confirm');
+    Route::get('/complaints/{complaint}/summons', [ComplaintWorkflowController::class, 'showSummons'])->name('complaints.summons');
+    Route::post('/complaints/{complaint}/summons', [ComplaintWorkflowController::class, 'saveSummons'])->name('complaints.summons.update');
+    Route::post('/complaints/{complaint}/meetings', [ComplaintMeetingController::class, 'store'])->name('complaints.meetings.store');
+    Route::post('/complaints/{complaint}/summons-services', [ComplaintSummonsServiceController::class, 'store'])->name('complaints.summons-services.store');
     Route::get('/reports', [AdminWorkspaceController::class, 'reports'])->name('reports');
     Route::get('/reports/export.csv', [AdminWorkspaceController::class, 'exportCsv'])->name('reports.csv');
     Route::get('/reports/export.pdf', [AdminWorkspaceController::class, 'exportPdf'])->name('reports.pdf');
@@ -94,6 +116,27 @@ Route::get('/complaint-evidence/{evidence}', [ComplaintEvidenceController::class
     ->middleware('auth:resident,staff,admin')
     ->name('complaint-evidence.show');
 
+Route::get('/complaints/{complaint}/receipt-proof', [ComplaintEvidenceController::class, 'receipt'])
+    ->middleware('auth:resident,staff,admin')
+    ->name('complaint-receipt.show');
+
+Route::get('/complaints/{complaint}/receipt/print', [ComplaintEvidenceController::class, 'printReceipt'])
+    ->middleware('auth:resident,staff,admin')
+    ->name('complaint-receipt.print');
+
+Route::get('/complaints/{complaint}/meetings/{meeting}/print', [ComplaintMeetingController::class, 'print'])
+    ->middleware('auth:resident,staff,admin')
+    ->name('complaint-meetings.print');
+
+Route::middleware('auth:staff,admin')->group(function (): void {
+    Route::get('/summons-services/{service}/proof', [ComplaintSummonsServiceController::class, 'proof'])->name('summons-services.proof');
+    Route::get('/summons-services/{service}/print', [ComplaintSummonsServiceController::class, 'print'])->name('summons-services.print');
+});
+
 Route::patch('/appearance', [AppearanceController::class, 'update'])->middleware('auth:resident,staff,admin')->name('appearance.update');
+Route::middleware('auth:resident,staff,admin')->group(function (): void {
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+});
 
 require __DIR__.'/settings.php';

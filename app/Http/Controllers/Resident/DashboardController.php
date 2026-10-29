@@ -31,6 +31,8 @@ class DashboardController extends Controller
                 'pending' => (clone $complaints)->where('status', 'pending')->count(),
                 'in_progress' => (clone $complaints)->where('status', 'approved')->count(),
                 'resolved' => (clone $complaints)->where('status', 'resolved')->count(),
+                'unsettled' => (clone $complaints)->where('status', 'unsettled')->count(),
+                'closed' => (clone $complaints)->where('status', 'closed')->count(),
             ],
             'recentComplaints' => $search === ''
                 ? $recentComplaints->limit(5)->get()

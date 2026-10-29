@@ -10,9 +10,9 @@
     <div class="relative"><p class="text-xs font-bold uppercase tracking-widest text-amber-200">Administrator workspace</p><h2 class="mt-2 text-2xl font-black sm:text-3xl">A clear view of community concerns.</h2><p class="mt-2 text-sm text-rose-100">Monitor complaint response and manage the people who keep Poblacion moving.</p></div>
     <a href="{{ route('admin.users.index') }}" class="relative rounded-xl bg-gold px-5 py-3 text-center text-sm font-bold text-maroon-dark hover:bg-amber-300">Manage accounts →</a>
 </section>
-<section class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-    @foreach ([['pending', 'Pending'], ['in_progress', 'In progress'], ['resolved', 'Resolved'], ['residents', 'Residents'], ['staff', 'Staff']] as [$key, $label])
-        <article class="rounded-2xl border border-stone-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $label }}</p><p data-live-count="{{ $key }}" class="mt-3 text-3xl font-black">{{ $counts[$key] }}</p><p class="mt-1 text-xs text-slate-500">Current total</p></article>
+<section class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+    @foreach ([['pending', 'Pending'], ['in_progress', 'In Progress'], ['unsettled', 'Unsettled'], ['resolved', 'Resolved'], ['closed', 'Auto-closed'], ['residents', 'Residents'], ['staff', 'Staff']] as [$key, $label])
+        <article class="rounded-2xl border border-stone-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ __($label) }}</p><p data-live-count="{{ $key }}" class="mt-3 text-3xl font-black">{{ $counts[$key] }}</p><p class="mt-1 text-xs text-slate-500">{{ __('Current total') }}</p></article>
     @endforeach
 </section>
 <section class="mt-8"><div class="mb-4 flex items-end justify-between"><div><p class="text-xs font-bold uppercase tracking-widest text-maroon">Most recent</p><h2 class="mt-1 text-xl font-black">Incoming complaints</h2></div><a href="{{ route('admin.complaints.index') }}" class="text-sm font-bold text-maroon hover:underline">View all</a></div>

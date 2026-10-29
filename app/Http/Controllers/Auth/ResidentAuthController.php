@@ -9,7 +9,6 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -29,31 +28,21 @@ class ResidentAuthController extends Controller
 
     public function storeLogin(RoleLoginRequest $request): RedirectResponse
     {
-        $credentials = $request->safe()->only(['email', 'password']) + ['role' => 'resident', 'is_active' => true];
+        $credentials = $request->safe()->only(['email', 'password']);
 
-        if (! Auth::guard('resident')->attempt($credentials, $request->boolean('remember'))) {
-            $account = User::query()
-                ->where('email', $request->validated('email'))
-                ->where('is_active', true)
-                ->first();
+        foreach (['resident', 'staff', 'admin'] as $role) {
+            if (Auth::guard($role)->attempt(
+                $credentials + ['role' => $role, 'is_active' => true],
+                $request->boolean('remember'),
+            )) {
+                $request->session()->regenerate();
+                $request->session()->forget('url.intended');
 
-            if ($account !== null
-                && in_array($account->role, ['staff', 'admin'], true)
-                && Hash::check($request->validated('password'), $account->password)) {
-                $loginRoute = $account->role === 'staff' ? 'staff.login' : 'admin.login';
-
-                return redirect()->route($loginRoute)
-                    ->withErrors(['email' => 'This is a '.$account->role.' account. Please sign in through the '.$account->role.' portal.'])
-                    ->withInput(['email' => $account->email]);
+                return to_route($role.'.dashboard');
             }
-
-            return back()->withErrors(['email' => 'These credentials do not match our records.'])->onlyInput('email');
         }
 
-        $request->session()->regenerate();
-        $request->session()->forget('url.intended');
-
-        return to_route('resident.dashboard');
+        return back()->withErrors(['email' => 'These credentials do not match our records.'])->onlyInput('email');
     }
 
     public function storeRegistration(ResidentRegistrationRequest $request): RedirectResponse

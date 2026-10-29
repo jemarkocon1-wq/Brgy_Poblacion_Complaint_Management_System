@@ -29,12 +29,12 @@ test('residents and staff stay signed in through separate guards', function () {
         ->assertRedirect(route('resident.dashboard'));
     $this->assertAuthenticatedAs($resident, 'resident');
 
-    $this->post(route('staff.login.store'), ['email' => $staff->email, 'password' => 'password'])
+    $this->post(route('admin.login.store'), ['email' => $staff->email, 'password' => 'password'])
         ->assertRedirect(route('staff.dashboard'));
     $this->assertAuthenticatedAs($resident, 'resident');
     $this->assertAuthenticatedAs($staff, 'staff');
 
-    $this->post(route('staff.logout'))->assertRedirect(route('staff.login'));
+    $this->post(route('staff.logout'))->assertRedirect(route('login'));
     $this->assertAuthenticatedAs($resident, 'resident');
     $this->assertGuest('staff');
 });

@@ -11,8 +11,8 @@
     <a href="{{ route('resident.complaints.create') }}" class="relative inline-flex shrink-0 items-center justify-center rounded-xl bg-gold px-5 py-3 font-bold text-maroon-dark hover:bg-amber-300">＋ Submit a complaint</a>
 </section>
 
-<section class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    @foreach ([['total', 'Total reports', 'All concerns submitted'], ['pending', 'Pending review', 'Awaiting the barangay team'], ['in_progress', 'In progress', 'Being handled by staff'], ['resolved', 'Resolved', 'Concerns addressed']] as [$key, $label, $hint])
+<section class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    @foreach ([['total', 'Total reports', 'All concerns submitted'], ['pending', 'Pending review', 'Awaiting the barangay team'], ['in_progress', 'In Progress', 'Being handled by staff'], ['unsettled', 'Unsettled', 'No agreement reached'], ['resolved', 'Resolved', 'You confirmed resolved'], ['closed', 'Auto-closed', 'No staff response in three days']] as [$key, $label, $hint])
         <article class="rounded-2xl border border-stone-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><p class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ $label }}</p><p data-live-count="{{ $key }}" class="mt-3 text-3xl font-black">{{ $counts[$key] }}</p><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ $hint }}</p></article>
     @endforeach
 </section>

@@ -8,6 +8,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+[x-cloak] {
+    display: none !important;
+}
+
 @theme {
     --color-maroon: #7b1e2b;
     --color-maroon-dark: #5a1420;

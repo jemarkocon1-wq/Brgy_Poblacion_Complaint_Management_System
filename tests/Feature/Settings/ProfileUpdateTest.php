@@ -58,6 +58,18 @@ test('profile photo can be uploaded', function () {
     Storage::disk('public')->assertExists($user->avatar_path);
 });
 
+test('profile pictures use the current request host', function () {
+    Storage::fake('public');
+    config(['app.url' => 'http://configured-host.test']);
+    $user = User::factory()->create(['avatar_path' => 'avatars/avatar.jpg']);
+    Storage::disk('public')->put($user->avatar_path, 'image');
+
+    $this->actingAs($user, 'resident')
+        ->get('http://current-host.test/resident/profile')
+        ->assertSee('http://current-host.test/storage/avatars/avatar.jpg')
+        ->assertDontSee('http://configured-host.test/storage/avatars/avatar.jpg');
+});
+
 test('complaint form includes attachment preview area', function () {
     $resident = User::factory()->create(['role' => 'resident']);
 

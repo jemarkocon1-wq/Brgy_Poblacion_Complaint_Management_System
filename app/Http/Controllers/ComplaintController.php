@@ -31,26 +31,54 @@ class ComplaintController extends Controller
         return view('resident.complaints.index', compact('complaints'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('resident.complaints.create');
+        $role = $request->user()->role;
+
+        return view('resident.complaints.create', [
+            'role' => $role,
+            'residents' => in_array($role, ['staff', 'admin'], true)
+                ? User::query()->where('role', 'resident')->where('is_active', true)->orderBy('name')->get()
+                : collect(),
+        ]);
     }
 
     public function store(StoreComplaintRequest $request): RedirectResponse
     {
         $uploadedPaths = [];
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
 
         try {
-            $complaint = DB::transaction(function () use ($request, &$uploadedPaths): Complaint {
+            $complaint = DB::transaction(function () use ($request, $actor, &$uploadedPaths): Complaint {
+                $residentId = $actor->role === 'resident'
+                    ? $actor->id
+                    : (int) $request->validated('resident_id');
+
+                $status = $request->input('status', 'pending');
+                $assignedStaffId = $request->filled('assigned_staff_id') ? (int) $request->validated('assigned_staff_id') : null;
+
                 $complaint = Complaint::create($request->safe()->only([
                     'title',
                     'category',
+                    'respondents',
+                    'case_subject',
+                    'incident_date',
                     'description',
                     'location',
+                    'relief_sought',
+                    'witnesses',
+                    'approved_at',
+                    'staff_responded_at',
+                    'resolved_at',
+                    'closed_at',
+                    'receipt_confirmed_at',
+                    'summons_ready_at',
                 ]) + [
                     'reference' => 'BRGY-'.now()->format('ymd').'-'.Str::upper(Str::random(6)),
-                    'resident_id' => $request->user('resident')->id,
-                    'status' => 'pending',
+                    'resident_id' => $residentId,
+                    'assigned_staff_id' => $assignedStaffId,
+                    'status' => $status,
                 ]);
 
                 foreach ($request->file('attachments', []) as $file) {
@@ -68,11 +96,23 @@ class ComplaintController extends Controller
 
                 ComplaintActivity::create([
                     'complaint_id' => $complaint->id,
-                    'actor_id' => $request->user('resident')->id,
+                    'actor_id' => $actor->id,
                     'action' => 'submitted',
-                    'to_status' => 'pending',
-                    'description' => 'Complaint submitted by resident.',
+                    'to_status' => $status,
+                    'description' => $actor->role === 'resident'
+                        ? 'Complaint submitted by resident.'
+                        : 'Complaint encoded by '.$actor->role.'.',
                 ]);
+
+                if ($status !== 'pending' && $status !== 'closed') {
+                    ComplaintActivity::create([
+                        'complaint_id' => $complaint->id,
+                        'actor_id' => $actor->id,
+                        'action' => 'status_restored',
+                        'to_status' => $status,
+                        'description' => 'Legacy complaint restored to '.$status.' status during re-encoding.',
+                    ]);
+                }
 
                 return $complaint;
             });
@@ -90,16 +130,28 @@ class ComplaintController extends Controller
         Notification::send($recipients, new ComplaintAlert($complaint, 'A new complaint has been submitted.'));
         event(new ComplaintSubmitted($complaint));
 
-        return redirect()->route('resident.complaints.show', $complaint)->with('status', 'Your complaint has been submitted.');
+        $response = $actor->role === 'resident'
+            ? 'Your complaint has been submitted.'
+            : 'Complaint encoded successfully.';
+
+        return redirect()->route($actor->role.'.complaints.show', $complaint)->with('status', $response);
     }
 
     public function show(Request $request, Complaint $complaint): View
     {
         $this->authorize('view', $complaint);
-        $complaint->load(['resident', 'assignedStaff', 'evidence', 'activities.actor', 'comments.author']);
+        $canViewEvidence = in_array($request->user()->role, ['staff', 'admin'], true);
+        $complaint->load(['resident', 'assignedStaff', 'activities.actor', 'comments.author']);
+
+        if ($canViewEvidence) {
+            $complaint->load(['evidence', 'comments.evidence', 'summonsServices.recordedBy']);
+        }
+
+        $complaint->load(['meetings.recordedBy']);
 
         return view('complaints.show', [
             'complaint' => $complaint,
+            'canViewEvidence' => $canViewEvidence,
             'staffMembers' => in_array($request->user()->role, ['staff', 'admin'], true)
                 ? User::query()->where('role', 'staff')->where('is_active', true)->orderBy('name')->get()
                 : collect(),

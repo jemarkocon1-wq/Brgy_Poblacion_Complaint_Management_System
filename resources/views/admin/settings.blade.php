@@ -5,7 +5,7 @@
 
 @section('content')
 @php
-    $avatarPreview = $profile->avatar_path ? Storage::disk('public')->url($profile->avatar_path) : null;
+    $avatarPreview = $profile->avatar_path ? asset('storage/'.$profile->avatar_path) : null;
 @endphp
 <div class="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
     <section class="rounded-3xl border border-stone-200 bg-white p-6 sm:p-8 dark:border-slate-800 dark:bg-slate-900">

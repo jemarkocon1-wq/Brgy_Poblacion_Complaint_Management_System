@@ -31,7 +31,7 @@
         'staff' => 'staff.logout',
         default => 'logout',
     };
-    $notifications = $user?->unreadNotifications()->latest()->limit(5)->get() ?? collect();
+    $notifications = $user?->unreadNotifications()->latest()->get() ?? collect();
     $unreadCount = $user?->unreadNotifications()->count() ?? 0;
     $dashboardRoute = match ($role) {
         'admin' => 'admin.dashboard',
@@ -75,7 +75,7 @@
                            'bg-maroon text-white shadow-sm' => request()->routeIs($routeName),
                            'text-slate-600 hover:bg-stone-100 dark:text-slate-300 dark:hover:bg-slate-800' => ! request()->routeIs($routeName),
                        ])>
-                        {{ $label }}
+                        {{ __($label) }}
                     </a>
                 @endforeach
             </nav>
@@ -96,34 +96,58 @@
                             <img src="{{ asset('images/mahaplag-logo.png') }}" alt="Municipality of Mahaplag official seal" class="size-10 object-contain">
                         </a>
                         <div>
-                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ ucfirst($role) }} workspace</p>
+                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ __(ucfirst($role)) }} {{ __('workspace') }}</p>
                             <h1 class="text-sm font-bold sm:text-base">@yield('heading', 'Welcome back')</h1>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 sm:gap-4">
+                        <form method="POST" action="{{ route('locale.update') }}">
+                            @csrf
+                            <label for="locale" class="sr-only">{{ __('Language') }}</label>
+                            <select id="locale" name="locale" onchange="this.form.submit()" class="h-10 max-w-28 rounded-xl border border-stone-200 bg-white px-2 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900">
+                                <option value="en" @selected(app()->getLocale() === 'en')>{{ __('English') }}</option>
+                                <option value="fil" @selected(app()->getLocale() === 'fil')>{{ __('Filipino') }}</option>
+                            </select>
+                        </form>
                         <button type="button" onclick="window.toggleAppearance()" aria-label="Toggle light and dark theme"
                                 class="grid size-10 place-items-center rounded-xl border border-stone-200 text-lg hover:bg-stone-100 dark:border-slate-700 dark:hover:bg-slate-800">◐</button>
                         <div x-data="{ open: false }" class="relative">
-                            <button type="button" @click="open = !open" aria-label="Notifications"
+                            <button type="button" @click="open = !open" aria-label="Notifications" :aria-expanded="open.toString()"
                                     class="relative grid size-10 place-items-center rounded-xl border border-stone-200 text-lg hover:bg-stone-100 dark:border-slate-700 dark:hover:bg-slate-800">
                                 ♧
-                                <span data-notification-count @class(['absolute -right-1 -top-1 min-w-5 rounded-full bg-gold px-1 text-center text-[10px] font-bold text-maroon-dark', 'hidden' => $unreadCount === 0])>{{ $unreadCount }}</span>
+                                <span data-notification-count @class(['absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-600 px-1 text-center text-[10px] font-bold text-white', 'hidden' => $unreadCount === 0])>{{ $unreadCount > 99 ? '99+' : $unreadCount }}</span>
                             </button>
-                            <div x-cloak x-show="open" @click.outside="open = false" class="absolute right-0 z-30 mt-3 w-80 rounded-2xl border border-stone-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                                <p class="px-2 py-1 text-sm font-bold">Recent notifications</p>
-                                @forelse ($notifications as $notification)
-                                    <a href="{{ $role === 'resident' ? route('resident.complaints.show', $notification->data['complaint_id']) : ($role === 'admin' ? route('admin.complaints.show', $notification->data['complaint_id']) : route('staff.complaints.show', $notification->data['complaint_id'])) }}"
-                                       class="mt-1 block rounded-xl px-2 py-2 text-xs text-slate-600 hover:bg-stone-50 dark:text-slate-300 dark:hover:bg-slate-800">
-                                        <span class="font-semibold text-slate-900 dark:text-white">{{ $notification->data['reference'] }}</span>
-                                        <span class="mt-1 block">{{ $notification->data['message'] }}</span>
-                                    </a>
-                                @empty
-                                    <p class="px-2 py-3 text-xs text-slate-500">You're all caught up.</p>
-                                @endforelse
+                            <div x-cloak x-show="open" @click.outside="open = false" class="absolute right-0 z-30 mt-3 flex max-h-[min(32rem,calc(100dvh-6rem))] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900" aria-label="Unread notifications">
+                                <div class="flex items-center justify-between gap-2 px-2 py-1">
+                                    <p class="text-sm font-bold">Notifications <span class="font-normal text-slate-500">({{ $unreadCount }} unread)</span></p>
+                                    @if ($unreadCount > 0)
+                                        <form method="POST" action="{{ route('notifications.read-all') }}">
+                                            @csrf
+                                            <button type="submit" class="text-xs font-bold text-maroon hover:underline dark:text-rose-200">Read all</button>
+                                        </form>
+                                    @endif
+                                </div>
+                                <div class="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
+                                    @forelse ($notifications as $notification)
+                                        <form method="POST" action="{{ route('notifications.read', $notification->id) }}">
+                                            @csrf
+                                            <button type="submit" class="flex w-full items-start gap-2 rounded-xl bg-white px-2 py-2 text-left text-xs text-slate-600 transition hover:bg-stone-50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+                                                <span aria-label="Unread" class="mt-1.5 size-2 shrink-0 rounded-full bg-rose-600"></span>
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block font-semibold text-slate-900 dark:text-white">{{ $notification->data['reference'] ?? 'Complaint update' }}</span>
+                                                    <span class="mt-1 block">{{ $notification->data['message'] ?? 'There is a new complaint update.' }}</span>
+                                                    <span class="mt-2 block font-bold text-maroon dark:text-rose-200">Mark as read · view details</span>
+                                                </span>
+                                            </button>
+                                        </form>
+                                    @empty
+                                        <p class="px-2 py-3 text-xs text-slate-500">You're all caught up. Read notifications disappear from this list.</p>
+                                    @endforelse
+                                </div>
                             </div>
                         </div>
                         @php
-                            $userAvatar = $user?->avatar_path ? Storage::disk('public')->url($user->avatar_path) : null;
+                            $userAvatar = $user?->avatar_path ? asset('storage/'.$user->avatar_path) : null;
                         @endphp
                         @if ($userAvatar)
                             <img src="{{ $userAvatar }}" alt="{{ $user->name }} profile picture" class="size-11 rounded-full object-cover ring-2 ring-stone-200 dark:ring-slate-700">
@@ -144,7 +168,7 @@
                 </div>
                 <nav class="flex gap-2 overflow-x-auto px-4 pb-3 lg:hidden">
                     @foreach ($links as [$label, $routeName])
-                        <a href="{{ route($routeName) }}" @class(['shrink-0 rounded-lg px-3 py-2 text-xs font-semibold', 'bg-maroon text-white' => request()->routeIs($routeName), 'bg-stone-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => ! request()->routeIs($routeName)])>{{ $label }}</a>
+                            <a href="{{ route($routeName) }}" @class(['shrink-0 rounded-lg px-3 py-2 text-xs font-semibold', 'bg-maroon text-white' => request()->routeIs($routeName), 'bg-stone-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' => ! request()->routeIs($routeName)])>{{ __($label) }}</a>
                     @endforeach
                 </nav>
             </header>
@@ -162,6 +186,7 @@
         </div>
     </div>
     <div id="live-announcement" class="sr-only" aria-live="polite"></div>
+    <div data-live-toasts class="fixed bottom-4 right-4 z-[100] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3" aria-live="polite"></div>
     @stack('scripts')
 </body>
 </html>

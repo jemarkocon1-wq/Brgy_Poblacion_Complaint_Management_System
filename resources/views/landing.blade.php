@@ -15,7 +15,7 @@
         </div>
         <div class="flex items-center gap-2">
             <button type="button" onclick="window.toggleAppearance()" aria-label="Toggle light and dark theme" class="grid size-10 place-items-center rounded-xl text-lg hover:bg-stone-100 dark:hover:bg-slate-800">◐</button>
-            <a href="{{ route('login') }}" class="hidden rounded-xl px-4 py-2.5 text-sm font-semibold text-maroon hover:bg-rose-50 dark:hover:bg-slate-800 sm:inline-flex">Sign in</a>
+            <a href="{{ route('login') }}" class="rounded-xl px-4 py-2.5 text-sm font-semibold text-maroon hover:bg-rose-50 dark:hover:bg-slate-800">Sign in</a>
             <a href="{{ route('register') }}" class="rounded-xl bg-maroon px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-maroon/15 hover:bg-maroon-dark">Get started</a>
         </div>
     </nav>
@@ -34,7 +34,7 @@
                 <p class="mt-6 max-w-xl text-base leading-8 text-rose-100 sm:text-lg">A simple, secure way to report neighborhood concerns and follow every update from submission to resolution.</p>
                 <div class="mt-9 flex flex-wrap gap-3">
                     <a href="{{ route('register') }}" class="rounded-xl bg-gold px-6 py-3.5 font-bold text-maroon-dark shadow-lg hover:bg-amber-300">Submit a concern <span aria-hidden="true">→</span></a>
-                    <a href="{{ route('login') }}" class="rounded-xl border border-white/30 px-6 py-3.5 font-bold text-white hover:bg-white/10">Resident sign in</a>
+                    <a href="{{ route('login') }}" class="rounded-xl border border-white/30 px-6 py-3.5 font-bold text-white hover:bg-white/10">Sign in</a>
                 </div>
                 <p class="mt-5 text-xs text-rose-200">Already registered? Track your concern anytime from your resident portal.</p>
             </div>
@@ -73,7 +73,7 @@
     </section>
 
     <section id="contact" class="mx-auto max-w-7xl px-5 py-20">
-        <div class="flex flex-col justify-between gap-8 rounded-[2rem] bg-maroon px-7 py-10 text-white sm:px-12 md:flex-row md:items-center">
+        <div class="rounded-[2rem] bg-maroon px-7 py-10 text-white sm:px-12">
             <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-amber-200">We're here to help</p><h2 class="mt-3 text-3xl font-black">Let's care for Poblacion together.</h2><p class="mt-3 max-w-xl text-sm leading-7 text-rose-100">For urgent concerns, visit your barangay office. For other inquiries, contact the local team during office hours.</p>
                 @if ($information)
                     <div class="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-rose-100">
@@ -84,7 +84,6 @@
                     </div>
                 @endif
             </div>
-            <a href="{{ route('staff.login') }}" class="shrink-0 rounded-xl bg-white px-5 py-3 font-bold text-maroon hover:bg-rose-50">Official staff sign in</a>
         </div>
     </section>
 </main>

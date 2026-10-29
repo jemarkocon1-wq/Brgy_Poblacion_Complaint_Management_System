@@ -21,6 +21,8 @@ class WorkspaceController extends Controller
                 'pending' => Complaint::where('status', 'pending')->count(),
                 'in_progress' => Complaint::where('status', 'approved')->count(),
                 'resolved' => Complaint::where('status', 'resolved')->count(),
+                'unsettled' => Complaint::where('status', 'unsettled')->count(),
+                'closed' => Complaint::where('status', 'closed')->count(),
                 'assigned' => Complaint::where('assigned_staff_id', auth('staff')->id())->where('status', 'approved')->count(),
             ],
             'recentComplaints' => Complaint::with('resident', 'assignedStaff')->latest()->limit(8)->get(),
@@ -30,7 +32,7 @@ class WorkspaceController extends Controller
     public function complaints(Request $request): View
     {
         $filters = $request->validate([
-            'status' => ['nullable', 'in:pending,approved,rejected,resolved'],
+            'status' => ['nullable', 'in:pending,approved,rejected,resolved,unsettled,closed'],
             'search' => ['nullable', 'string', 'max:100'],
         ]);
         $complaints = Complaint::query()
@@ -71,7 +73,7 @@ class WorkspaceController extends Controller
     public function reports(Request $request): View
     {
         $filters = $request->validate([
-            'status' => ['nullable', 'in:pending,approved,rejected,resolved'],
+            'status' => ['nullable', 'in:pending,approved,rejected,resolved,unsettled,closed'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
         ]);
@@ -84,6 +86,7 @@ class WorkspaceController extends Controller
         return view('reports.index', [
             'title' => 'Staff reports',
             'filters' => $filters,
+            'complaints' => $complaints->clone()->with(['resident', 'assignedStaff'])->latest()->paginate(15)->withQueryString(),
             'counts' => $complaints->clone()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'categories' => $complaints->clone()->selectRaw('category, count(*) as total')->groupBy('category')->pluck('total', 'category'),
         ]);

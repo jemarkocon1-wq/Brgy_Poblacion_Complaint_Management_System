@@ -28,7 +28,7 @@ class ManageUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'lowercase', 'email:rfc,filter', Rule::unique('users', 'email')->ignore($this->route('user'))],
             'phone' => ['nullable', 'string', 'max:30'],
-            'role' => ['required', $this->isMethod('post') ? 'in:staff' : 'in:resident,staff'],
+            'role' => ['required', $this->isMethod('post') ? 'in:admin,resident,staff' : 'in:resident,staff'],
             'password' => [$this->isMethod('post') ? 'required' : 'nullable', 'confirmed', Password::min(8)],
         ];
     }

@@ -29,6 +29,10 @@ export default defineConfig({
         }),
     ]),
     server: {
+        host: '0.0.0.0',
+    hmr: {
+        host: '192.168.56.1', // your computer's IPv4 address
+    },
         watch: {
             ignored: [
                 '**/.agents/**',

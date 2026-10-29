@@ -7,28 +7,33 @@ use App\Http\Requests\RoleLoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
 
 class AdminAuthController extends Controller
 {
-    public function login(): View
+    public function login(): RedirectResponse
     {
-        return view('auth.login', ['role' => 'admin', 'loginUrl' => route('admin.login.store')]);
+        return to_route('login');
     }
 
     public function storeLogin(RoleLoginRequest $request): RedirectResponse
     {
-        if (! Auth::guard('admin')->attempt(
-            $request->safe()->only(['email', 'password']) + ['role' => 'admin', 'is_active' => true],
-            $request->boolean('remember'),
-        )) {
-            return back()->withErrors(['email' => 'These credentials do not match an active admin account.'])->onlyInput('email');
+        $credentials = $request->safe()->only(['email', 'password']);
+
+        foreach (['admin', 'staff'] as $role) {
+            if (Auth::guard($role)->attempt(
+                $credentials + ['role' => $role, 'is_active' => true],
+                $request->boolean('remember'),
+            )) {
+                $request->session()->regenerate();
+                $request->session()->forget('url.intended');
+
+                return to_route($role.'.dashboard');
+            }
         }
 
-        $request->session()->regenerate();
-        $request->session()->forget('url.intended');
-
-        return to_route('admin.dashboard');
+        return back()
+            ->withErrors(['email' => 'These credentials do not match an active staff or administrator account.'])
+            ->onlyInput('email');
     }
 
     public function logout(Request $request): RedirectResponse
@@ -36,6 +41,6 @@ class AdminAuthController extends Controller
         Auth::guard('admin')->logout();
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.login');
+        return redirect()->route('login');
     }
 }

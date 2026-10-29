@@ -89,7 +89,7 @@ function receiveStatusChange(event) {
     if (role === 'staff' && event.assigned_staff_id === userId) {
         if (event.status === 'approved' && previous !== 'in_progress') {
             changeCounter('assigned', 1);
-        } else if (event.status === 'resolved' && previous === 'in_progress') {
+        } else if (next !== 'in_progress' && previous === 'in_progress') {
             changeCounter('assigned', -1);
         }
     }
@@ -103,12 +103,15 @@ const statusClasses = {
     approved: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200',
     rejected: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200',
     resolved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200',
+    unsettled: 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200',
+    closed: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
 };
 
 function incrementNotifications() {
     document.querySelectorAll('[data-notification-count]').forEach((element) => {
-        const next = Number(element.textContent || '0') + 1;
-        element.textContent = String(next);
+        const count = Number.parseInt(element.textContent || '0', 10);
+        const next = (Number.isFinite(count) ? count : 0) + 1;
+        element.textContent = next > 99 ? '99+' : String(next);
         element.classList.remove('hidden');
     });
 }
@@ -131,7 +134,38 @@ if (window.Echo && role) {
                 changeCounter('pending', 1);
                 changeCounter('total', 1);
                 incrementNotifications();
+                if (role === 'staff' || role === 'admin') {
+                    showLiveToast({
+                        title: 'New complaint submitted',
+                        message: event.reference,
+                        href: `/${role}/complaints/${event.complaint_id}`,
+                    });
+                }
                 window.dispatchEvent(new CustomEvent('complaint-submitted', { detail: event }));
             });
     });
+}
+
+function showLiveToast({ title, message, href }) {
+    const container = document.querySelector('[data-live-toasts]');
+
+    if (!container) {
+        return;
+    }
+
+    const toast = document.createElement('a');
+    toast.href = href;
+    toast.className = 'block rounded-2xl border border-rose-200 bg-white p-4 text-sm shadow-xl transition hover:border-maroon dark:border-slate-700 dark:bg-slate-900';
+
+    const heading = document.createElement('span');
+    heading.className = 'block font-bold text-slate-900 dark:text-white';
+    heading.textContent = title;
+
+    const detail = document.createElement('span');
+    detail.className = 'mt-1 block text-slate-600 dark:text-slate-300';
+    detail.textContent = message;
+
+    toast.append(heading, detail);
+    container.prepend(toast);
+    window.setTimeout(() => toast.remove(), 8000);
 }
